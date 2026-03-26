@@ -1,0 +1,1209 @@
+---
+title: "PEC4 - Estudio de análisis de datos"
+author: Carolina Lliberos
+date: "2025-12-30"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+  pdf_document:
+    toc: true
+    number_sections: true
+    toc_depth: 3
+  word_document:
+    toc: true
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Sección 1. Contexto y objetivo del estudio
+
+Debéis buscar un conjunto de datos relacionado con la Bioestadística y la Bioinformática, basándoos en los intereses profesionales o las preferencias del grupo.
+
+Especificad la procedencia o el origen de los datos, incluid las referencias correspondientes y justificad por qué habéis elegido estos datos, indicando qué objetivos o preguntas queréis responder.
+
+## Conjunto de datos seleccionado
+
+Hemos escogido el dataset de acceso público **UCI Heart Disease Data** (URL: https://www.kaggle.com/datasets/redwankarimsony/heart-disease-data) porque queríamos realizar un análisis sobre un conjunto de datos del ámbito de la biomedicina que contuviera características clínicas y demográficas de pacientes e individuos sanos y sirviera para investigar su relación con el desarrollo de una patología. En este caso, la enfermedad cardíaca o cardiovascular. 
+
+Este dataset incluye un número relevante de observaciones (920) de pacientes con enfermedad cardíaca e individuos sin enfermedad, de distintas instituciones de Estados Unidos (V.A. Medical Center, Long Beach y Cleveland Clinic Foundation), Suiza (Hospital Universitario de Zurich y Hospital Universitario de Basilea) y Hungría (Instituto de Cardiología de Hungria) y 16 variables de distintos tipos: variables continuas, categóricas, y una variable de clase (diagnosis), con distintos niveles de gravedad de la enfermedad, que puede transformarse en una variable de clase más simple (binaria: ausencia/presencia de enfermedad).
+
+Las características de este conjunto de datos se ajustan a las distintas herramientas estudiadas en la asignatura y al tipo de análisis planteados en esta prueva de evaluación final.
+
+## Objetivos del estudio
+
+A partir del conjunto de datos **UCI Heart Disease Data** queremos obtener información para analizar relaciones entre los factores que intervienen en la enfermedad cardíaca, mediante el examen de distintas variables clínicas y demográficas y predecir, mediante algoritmos de *machine learning*, la variable de clase (tener o no enfermedad cardíaca) basándonos en el conjunto de variables del dataset.
+
+
+# Sección 2. Prospección y preparación de los datos
+
+## Descripción de los datos
+
+Utilizando R, mostrad y explicad el tipo de fichero que habéis importado y las variables que lo componen. Esta descripción debe
+incluir (basándose en conceptos del LAB1):
+
+- Descripción general del conjunto de datos.
+- Tipo y clasificación de las variables (numéricas, categóricas, etc.).
+- Tamaño del conjunto de datos.
+- Detección de valores nulos.
+- Valoración del conjunto de datos (necesidad de transformaciones o presencia de inconsistencias).
+
+Debéis incluir capturas de pantalla y las instrucciones en R utilizadas para importar y mostrar los datos.
+
+En primer lugar, importamos el conjunto de datos:
+
+```{r}
+heart_disease = read.csv("heart_disease_uci.csv")
+head(heart_disease)
+```
+
+Veamos el tamaño del dataset y el tipo de variables que contiene nuestro dataset:
+
+```{r}
+str(heart_disease)
+```
+
+Nuestro dataset está formado por 920 observaciones y 16 variables. Las variables son las siguientes:
+
+| Variable | Descripción |
+|----------|-------------|
+| id       | Identificador único de cada paciente |
+| age      | Edad del paciente en años |
+| sex      | Sexo del paciente |
+| dataset  | Lugar dónde se ha realizado el estudio |
+| cp       | Tipo de dolor torácico |
+| trestbps | Presión arterial en reposo |
+| chol     | Colesterol en suero (mg/dl) |
+| fbs      | Nivel de azúcar en sangre en ayunas > 120 mg/dl (Sí/No) |
+| restecg  | Resultado del electrocardiograma en reposo |
+| thalch   | Frecuencia cardíaca máxima |
+| exang    | Angina inducida por ejercicio (Sí/No) |
+| oldpeak*  | Descenso del segmento ST inducido por ejercicio respecto al reposo |
+| slope*    | Pendiente del segmento ST en el ejercicio máximo |
+| ca       | Número de vasos sanguíneos grandes (0–3) coloreados por fluoroscopia |
+| thal     | Estado talémico. Sirve para detectar si hay zonas del corazón que reciben poca sangre |
+| num      | Presencia de enfermedad cardíaca (variable de clase). Sin enfermedad = 0; grados de la enfermedad = 1, 2, 3, 4 |
+
+\* El segmento ST es una parte importante del electrocardiograma y se usa para detectar problemas cardíacos (como por ejemplo el infarto de miocardio). La variable *oldpeak* mide cuánto baja el ST durante el ejercicio comparado con el reposo y *slope* mide la pendiente del ST durante el esfuerzo.
+
+Veamos si nuestras variables presentan valores nulos o ausentes y qué hacemos con ellos.
+
+Al observar el dataset con *View()* observamos la presencia de valores ausentes y NA:
+
+```{r}
+tail(heart_disease[,12:16])
+```
+
+Vamos a sustitutir los valores vacíos de nuestro dataset por *NA* para poder contabilizarlos posteriormente:
+
+```{r}
+heart_disease[heart_disease == ""] = NA
+# confirmamos que los valores vacíos son ahora NA
+tail(heart_disease[,12:16])
+```
+
+Evaluamos la presencia de valores *missing* mediante la función *describe()* del paquete *Hmisc*:
+
+```{r}
+library(Hmisc)
+describe(heart_disease)
+```
+
+Observamos la presencia de valores ausentes en muchas de nuestras variables:
+
+| Variable | Número de missing | % missing (relativo a n=920) |
+|----------|-------------------|------------------------------|
+| id       | 0                 | 0                            |
+| age      | 0                 | 0                            |
+| sex      | 0                 | 0                            |
+| dataset  | 0                 | 0                            |
+| cp       | 0                 | 0                            |
+| trestbps | 59                | 6.4                          |
+| chol     | 30                | 3.3                          |
+| fbs      | 90                | 9.8                          |
+| restecg  | 2                 | 0.2                          |
+| thalch   | 55                | 6.0                          |
+| exang    | 55                | 6.0                          |
+| oldpeak  | 62                | 6.7                          |
+| slope    | 309               | 33.6                         |
+| ca       | 611               | 66.4                         |
+| thal     | 486               | 52.8                         |
+| num      | 0                 | 0                            |
+
+Las variables que presentan un número de valores *missing* más alto son *ca*, *thal* y *slope* con 611, 486 y 309 valores *missing*, respectivamente. En el caso de *ca* el porcentaje de valores ausentes es del 66%. Debido a la cifra tan extremadamente alta, hemos decidido eliminar esta variable del dataset para garantizar la calidad del análisis, ya que si la mantenemos deberíamos descartar el 66% de las observaciones. Esto podría introducir un sesgo importante en los resultados.
+
+De manera similar, la variable *thal* también presenta un porcentaje de valores ausentes muy alto (53%). Por este motivo, se ha decidido eliminar esta variable, priorizando la robustez del análisis.
+
+Procedemos a eliminar las variables *ca* y *thal* del dataset y, a continuación, descartamos las observaciones que todavía contienen valores ausentes en el dataset resultante.
+
+```{r}
+# Eliminamos las variables ca y thal
+heart_disease2 = heart_disease[,-c(14, 15)]
+# confirmamos que ambas variables han sido eliminadas
+str(heart_disease2)
+# usamos la función complete.cases() para limpiar los NA
+heart_disease_2_clean =  heart_disease2[complete.cases(heart_disease2), ]
+# vemos las dimensiones del dataset limpio
+str(heart_disease_2_clean)
+```
+
+El dataset limpio (*heart_disease_2_clean*) contiene 531 observaciones y 14 variables. En el proceso de limpieza de los datos, hemos perdido un 42% de las observaciones iniciales. Cabe destacar, que si no hubiesemos eliminado las variables *ca* y *thal*, el tamaño de nuestro dataset limpio hubiera sido únicamente de 299 observaciones, lo que habría supuesto la pérdida de un 68% de los datos aproximadamente, tal y como podemos ver a continuación: 
+
+```{r}
+# limpiamos los NA usando el dataset inicial (con ca y thal)
+heart_disease_clean =  heart_disease[complete.cases(heart_disease), ]
+# dimensiones del dataset limpio
+str(heart_disease_clean)
+```
+
+Una vez tenemos el dataset limpio y con las variables definitivas seleccionadas, vamos a analizar la clase de cada variable y valorar si es necesario modificar dicha clasificación.
+
+| Variable | Tipo actual    | Tipo deseado   | Comentario                                                                            |
+|----------|----------------|----------------|---------------------------------------------------------------------------------------|
+| id       | numérica       | numérica       |                                                                                       |
+| age      | numérica       | numérica       |                                                                                       |
+| sex      | carácter (chr) | factor         | Requiere conversión a factor                                                          |
+| dataset  | carácter (chr) | factor         | Requiere conversión a factor                                                          |
+| cp       | carácter (chr) | factor         | Requiere conversión a factor                                                          |
+| trestbps | numérica       | numérica       |                                                                                       |
+| chol     | numérica       | numérica       |                                                                                       |
+| fbs      | lógica (logi)  | factor         | Requiere conversión a factor                                                          |
+| restecg  | carácter (chr) | factor         | Requiere conversión a factor                                                          |
+| thalch   | numérica       | numérica       |                                                                                       |
+| exang    | lógica (logi)  | factor         | Requiere conversión a factor                                                          |
+| oldpeak  | numérica       | numérica       |                                                                                       |
+| slope    | carácter (chr) | factor         | Requiere conversión a factor                                                          |
+| ca       | numérica       | numérica       | Variable eliminada                                                                    |
+| thal     | carácter (chr) | factor         | Variable eliminada                                                                    |
+| num      | numérica       | factor ordinal | Requiere conversión a factor ordinal; Convertir a factor binario (sin enfermedad = 0; con = 1) |
+
+A continuación, convertimos las variables indicadas en la tabla anterior al tipo factor, definiendo explícitamente los niveles de cada una de ellas mediante la función *table()* y *str()*:
+
+1. *sex*
+
+```{r}
+# convertimos a factor
+heart_disease_2_clean$sex = factor(heart_disease_2_clean$sex)
+# niveles de la variable
+table(heart_disease_2_clean$sex)
+# confirmamos la conversión a factor
+str(heart_disease_2_clean$sex)
+```
+
+2. *dataset*
+
+```{r}
+heart_disease_2_clean$dataset = factor(heart_disease_2_clean$dataset)
+table(heart_disease_2_clean$dataset)
+str(heart_disease_2_clean$dataset)
+```
+
+3. *cp*
+
+```{r}
+heart_disease_2_clean$cp = factor(heart_disease_2_clean$cp)
+table(heart_disease_2_clean$cp)
+str(heart_disease_2_clean$cp)
+```
+
+4. *fbs*
+
+```{r}
+heart_disease_2_clean$fbs = factor(heart_disease_2_clean$fbs)
+table(heart_disease_2_clean$fbs)
+str(heart_disease_2_clean$fbs)
+```
+
+5. *restecg*
+
+```{r}
+heart_disease_2_clean$restecg = factor(heart_disease_2_clean$restecg)
+table(heart_disease_2_clean$restecg)
+str(heart_disease_2_clean$restecg)
+```
+
+6. *exang*
+
+```{r}
+heart_disease_2_clean$exang = factor(heart_disease_2_clean$exang)
+table(heart_disease_2_clean$exang)
+str(heart_disease_2_clean$exang)
+```
+
+7. *slope*
+
+```{r}
+heart_disease_2_clean$slope = factor(heart_disease_2_clean$slope)
+table(heart_disease_2_clean$slope)
+str(heart_disease_2_clean$slope)
+```
+
+8. *num* (renombrada como *diagnosis*)
+
+Renombramos la variable *num* a *diagnosis*:
+
+```{r}
+# copiamos la variable num en otra variable llamada diagnosis
+heart_disease_2_clean$diagnosis = heart_disease_2_clean$num
+# eliminamos la variable num (columna 14)
+heart_disease_2_clean = heart_disease_2_clean[, -14]
+# confirmamos la desaparición de num y aparición de diagnosis
+str(heart_disease_2_clean)
+```
+
+Una vez renombrada, la convertimos a factor ordinal:
+
+```{r}
+# convertimos a factor ordinal
+heart_disease_2_clean$diagnosis = factor(heart_disease_2_clean$diagnosis, levels = c(0, 1, 2, 3, 4),
+                                 ordered = TRUE)
+# niveles de la variable
+table(heart_disease_2_clean$diagnosis)
+# confirmamos la conversión de la variable a factor
+str(heart_disease_2_clean$diagnosis)
+```
+
+Finalmente, generamos una nueva variable de diagnóstico definida como un factor binario con valores 0 y 1, donde 0 indica ausencia de enfermedad cardíaca y 1 indica presencia de enfermedad cardíaca:
+
+```{r}
+# generamos una nueva variable con el diagnóstico en binario
+heart_disease_2_clean$diagnosis_bin = ifelse(heart_disease_2_clean$diagnosis == "0", "0", "1")
+# convertimos a factor
+heart_disease_2_clean$diagnosis_bin = factor(heart_disease_2_clean$diagnosis_bin)
+# niveles de la variable
+table(heart_disease_2_clean$diagnosis_bin)
+# confirmamos la conversión de la variable a factor
+str(heart_disease_2_clean$diagnosis_bin)
+# confirmamos que el tamaño del dataset se ha incrementado en una variable
+str(heart_disease_2_clean)
+```
+
+En la estructura de nuestro dataset se puede observar la conversión de todas las variables seleccionadas anteriormente a tipo factor, así como la creación de la nueva variable de diagnóstico en formato de factor binario. Esta nueva variable nos permitirá un análisis más sencillo en comparación con la misma variable de diagnóstico en formato de factor ordinal de 5 niveles. 
+
+## Preguntas “objetivo”
+
+Plantead un mínimo de cuatro preguntas objetivo que den una idea de la información contenida en el conjunto de datos. El objetivo es obtener información a partir de determinados criterios, según variables o rangos de valores. Podéis basaros en el tipo de consultas realizadas en la PEC1 y utilizar, en alguno de los casos, la definición de funciones (tal como se trabaja en el LAB3).
+
+1. ¿El sexo influye en el riesgo de padecer enfermedad cardíaca?
+2. ¿Existen diferencias en la frecuencia cardíaca máxima o en el nivel de colesterol entre pacientes con y sin enfermedad cardíaca?
+3. ¿Existe asociación entre padecer angina de pecho inducida por ejercicio y tener o no enfermedad cardíaca?
+4. ¿Existe asociación entre el tipo de resultado del electrocardiograma en reposo y el diagnóstico de enfermedad cardíaca?
+5. ¿Es posible predecir de forma fiable la presencia o ausencia de enfermedad cardíaca a partir de las variables clínicas disponibles en nuestro dataset?
+
+# Sección 3. Análisis exploratorio de los datos
+
+## Análisis descriptivo y gráfico
+
+Realizad un análisis descriptivo de los datos (basado en conceptos del LAB2). Este estudio debe incluir un resumen
+paramétrico de los datos y diversas representaciones gráficas basadas en criterios determinados según los tipos de variables y el objetivo del estudio. El tipo de gráficos y los criterios quedan a vuestra elección.
+
+### Variables continuas
+```{r}
+# Resumen paramétrico de los datos
+# Variables continuas
+summary(heart_disease_2_clean[, c("age","trestbps","chol","thalch","oldpeak")])
+
+# Cálculo de la desviación típica
+sapply(heart_disease_2_clean[, c("age","trestbps","chol","thalch","oldpeak")],
+       sd)
+
+# Variables continuas. Media y desviación típica según el diagnóstico:
+#   Valor 0: ausencia de enfermedad cardiovascular
+#   Valor 1: presencia de enfermedad
+
+# Edad del paciente (años)
+aggregate(age ~ diagnosis_bin, data = heart_disease_2_clean,
+          FUN = function(x) c(mean=mean(x), sd=sd(x)))
+
+# Presión arterial en reposo (en mm Hg, en el ingreso al hospital)
+aggregate(trestbps ~ diagnosis_bin, data = heart_disease_2_clean,
+          FUN = function(x) c(mean=mean(x), sd=sd(x)))
+
+# Colesterol en suero (mg/dl)
+aggregate(chol ~ diagnosis_bin, data = heart_disease_2_clean,
+          FUN = function(x) c(mean=mean(x), sd=sd(x)))
+
+# Frecuencia cardíaca máxima alcanzada (lpm)
+aggregate(thalch ~ diagnosis_bin, data = heart_disease_2_clean,
+          FUN = function(x) c(mean=mean(x), sd=sd(x)))
+
+# Descenso del segmento ST inducida por el ejercicio en relación con el reposo
+aggregate(oldpeak ~ diagnosis_bin, data = heart_disease_2_clean,
+         FUN = function(x) c(mean=mean(x), sd=sd(x)))
+```
+
+### Variables categóricas
+```{r}
+# Variables categóricas. Tablas de frecuencias absolutas y relativas
+library(dplyr)
+library(knitr)
+
+# Sexo
+table(heart_disease_2_clean$sex) %>%
+  as.data.frame() %>%
+  rename(Sexo = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Sexo")
+
+prop.table(table(heart_disease_2_clean$sex)) %>%
+  as.data.frame() %>%
+  rename(Sexo = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Sexo")
+
+# Tipo de dolor torácico
+table(heart_disease_2_clean$cp) %>%
+  as.data.frame() %>%
+  rename("Dolor torácico" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Dolor torácico")
+
+prop.table(table(heart_disease_2_clean$cp)) %>%
+  as.data.frame() %>%
+  rename("Dolor torácico" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Dolor torácico")
+
+# Nivel de azúcar en sangre en ayunas > 120 mg/dl (Sí/No)
+table(heart_disease_2_clean$fbs) %>%
+  as.data.frame() %>%
+  rename("Nivel azúcar" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Nivel azúcar")
+
+prop.table(table(heart_disease_2_clean$fbs)) %>%
+  as.data.frame() %>%
+  rename("Nivel azúcar" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Nivel azúcar")
+
+# Resultado del electrocardiograma en reposo
+table(heart_disease_2_clean$restecg) %>%
+  as.data.frame() %>%
+  rename("Resultado ECG" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Resultado ECG")
+
+prop.table(table(heart_disease_2_clean$restecg)) %>%
+  as.data.frame() %>%
+  rename("Resultado ECG" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Resultado ECG")
+
+# Angina inducida por ejercicio (Sí/No)
+table(heart_disease_2_clean$exang) %>%
+  as.data.frame() %>%
+  rename("Angina" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Angina inducida por exercicio")
+
+prop.table(table(heart_disease_2_clean$exang)) %>%
+  as.data.frame() %>%
+  rename("Angina" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Angina inducida por exercicio")
+
+# Pendiente del segmento ST en el ejercicio máximo
+table(heart_disease_2_clean$slope) %>%
+  as.data.frame() %>%
+  rename("Pendiente segmento ST" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Pendiente del segmento ST en el ejercicio máximo")
+
+prop.table(table(heart_disease_2_clean$slope)) %>%
+  as.data.frame() %>%
+  rename("Pendiente segmento ST" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Pendiente del segmento ST en el ejercicio máximo")
+
+# Lugar dónde se ha realizado el estudio
+table(heart_disease_2_clean$dataset) %>%
+  as.data.frame() %>%
+  rename("Lugar" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Lugar estudio")
+
+prop.table(table(heart_disease_2_clean$dataset)) %>%
+  as.data.frame() %>%
+  rename("Lugar" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Lugar estudio")
+
+# Variable diagnosis (ordinal)
+table(heart_disease_2_clean$diagnosis) %>%
+  as.data.frame() %>%
+  rename("Diagnóstico" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Diagnóstico")
+
+prop.table(table(heart_disease_2_clean$diagnosis)) %>%
+  as.data.frame() %>%
+  rename("Diagnóstico" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Diagnóstico")
+
+# Variable diagnosis_bin (binaria)
+table(heart_disease_2_clean$diagnosis_bin) %>%
+  as.data.frame() %>%
+  rename("Diagnóstico" = Var1, Frecuencia = Freq) %>%
+  kable(caption = "Frec.Abs Diagnóstico")
+
+prop.table(table(heart_disease_2_clean$diagnosis_bin)) %>%
+  as.data.frame() %>%
+  rename("Diagnóstico" = Var1, Porcentaje = Freq) %>%
+  mutate(Porcentaje = round(Porcentaje * 100, 2)) %>%
+  kable(caption = "Porcentaje Diagnóstico")
+
+# Frecuencias absolutas según el diagnóstico
+# Tipo de dolor torácico
+kable(table(heart_disease_2_clean$cp, heart_disease_2_clean$diagnosis_bin),
+      caption = "Distribución enfermedad según dolor torácico")
+
+# Nivel de azúcar en sangre en ayunas > 120 mg/dl (Sí/No)
+kable(table(heart_disease_2_clean$fbs, heart_disease_2_clean$diagnosis_bin),
+      caption = "Distribución enfermedad según nivel de azúcar")
+
+# Resultado del electrocardiograma en reposo
+kable(table(heart_disease_2_clean$restecg, heart_disease_2_clean$diagnosis_bin),
+      caption = "Distribución enfermedad según resultado ECG en reposo")
+
+# Angina inducida por ejercicio (Sí/No)
+kable(table(heart_disease_2_clean$exang, heart_disease_2_clean$diagnosis_bin),
+      caption = "Distribución enfermedad según angina inducida por ejercicio")
+
+# Pendiente del segmento ST en el ejercicio máximo
+kable(table(heart_disease_2_clean$slope, heart_disease_2_clean$diagnosis_bin),
+      caption = "Distribución enfermedad según pendiente ST en ejercicio máximo")
+
+```
+
+### Representación gráfica. Variables continuas
+```{r}
+# Distribución de edad
+hist(heart_disease_2_clean$age,
+     main = "Distribución de edad",
+     xlab = "Edad (años)", ylab = "Frecuencia")
+
+# Comparación variables contínuas según grupo diagnóstico
+# Edad
+boxplot(age ~ diagnosis_bin, data = heart_disease_2_clean,
+     main = "Edad según diagnóstico",
+     xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+     ylab = "Edad (años)")
+
+# Presión arterial en reposo
+boxplot(trestbps ~ diagnosis_bin, data = heart_disease_2_clean,
+     main = "Presión arterial en reposo según diagnóstico",
+     xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+     ylab = "Presión arterial en reposo (mm Hg)")
+
+# Colesterol en suero
+boxplot(chol ~ diagnosis_bin, data = heart_disease_2_clean,
+     main = "Colesterol según diagnóstico",
+     xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+     ylab = "Colesterol en suero (mg/dl)")
+
+# Frecuencia cardíaca máxima
+boxplot(thalch ~ diagnosis_bin, data = heart_disease_2_clean,
+     main = "Frecuencia cardíaca máxima según diagnóstico",
+     xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+     ylab = "Frecuencia cardíaca máxima alcanzada (lpm)")
+
+# Descenso del segmento ST
+boxplot(oldpeak ~ diagnosis_bin, data = heart_disease_2_clean,
+     main = "Descenso del segmento ST según diagnóstico",
+     xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+     ylab = "Descenso del segmento ST")
+```
+
+
+### Representación gràfica. Variables categóricas
+```{r}
+# Tipo de dolor torácico
+barplot(
+  t(prop.table(
+    table(heart_disease_2_clean$cp,
+          heart_disease_2_clean$diagnosis_bin), 1)),
+  col = c("gray90","gray40"),
+  beside = TRUE, legend.text = c("Sanos", "Enfermos"),
+  main = "Enfermedad cardiovascular según el tipo de dolor torácico",
+  xlab = "Enfermedad cardiovascular (0: ausencia; 1: presencia)",
+  ylab = "Proporción de pacientes"
+)
+
+# Nivel de azúcar en sangre en ayunas > 120 mg/dl (Sí/No)
+barplot(
+  t(prop.table(
+    table(heart_disease_2_clean$fbs,
+          heart_disease_2_clean$diagnosis_bin), 1)),
+  beside = TRUE, legend.text = c("Sanos", "Enfermos"),
+  col = c("gray90","gray40"),
+  main = "Proporción enfermedad CV según el nivel de azúcar",
+  xlab = "Nivel de azúcar",
+  ylab = "Proporción de pacientes"
+)
+
+# Resultado del electrocardiograma en reposo
+barplot(
+  t(prop.table(
+    table(heart_disease_2_clean$restecg,
+          heart_disease_2_clean$diagnosis_bin), 1)),
+  beside = TRUE, legend.text = c("Sanos", "Enfermos"),
+  col = c("gray90", "gray40"),
+  main = "Proporción enfermedad CV según el tipo de ECG en reposo",
+  xlab = "ECG en reposo",
+  ylab = "Proporción de pacientes"
+)
+
+# Angina inducida por ejercicio (Sí/No)
+barplot(
+  t(prop.table(
+    table(heart_disease_2_clean$exang,
+          heart_disease_2_clean$diagnosis_bin), 1)),
+  beside = TRUE, legend.text = c("Sanos", "Enfermos"),
+  col = c("gray90","gray40"),
+  main = "Proporción enfermedad CV según el tipo de angina",
+  xlab = "Angina inducida por ejercicio",
+  ylab = "Proporción de pacientes"
+)
+
+# Pendiente del segmento ST en el ejercicio máximo
+barplot(
+  t(prop.table(
+    table(heart_disease_2_clean$slope,
+          heart_disease_2_clean$diagnosis_bin), 1)),
+  beside = TRUE, legend.text = c("Sanos", "Enfermos"),
+  col = c("gray90","gray40"),
+  main = "Proporción enfermedad CV según el pendiente del segmento ST",
+  xlab = "Pendiente del segmento ST",
+  ylab = "Proporción de pacientes"
+)
+
+```
+
+### Gráfico de correlación por pares
+```{r}
+# Correlación por pares. Color según diagnóstico
+pairs(
+  heart_disease_2_clean[, c("age", "trestbps", "chol", "thalch", "oldpeak")],
+  col = heart_disease_2_clean$diagnosis_bin)
+```
+
+
+## Ejercicios de inferencia y simulación
+
+a) Basándoos en los conceptos trabajados en el LAB3, definid una función en R que realice algún tipo de cálculo de
+interés en el contexto del conjunto de datos. 
+```{r}
+# Función cálculo RR y OR
+calculo_riesgo <- function(datos, var_exp, nivel_exp,
+                           resultado = "diagnosis_bin") {
+  tab <- table(datos[[var_exp]], datos[[resultado]])
+  
+  # Id filas
+  fila_exp <- which(rownames(tab) == nivel_exp)
+  fila_noexp <- which(rownames(tab) != nivel_exp)
+  
+  # Riesgos
+  riesgo_exp <- tab[fila_exp, "1"] / sum(tab[fila_exp, ])
+  riesgo_noexp <- tab[fila_noexp, "1"] / sum(tab[fila_noexp, ])
+  
+  # Odds
+  odds_exp <- tab[fila_exp, "1"] / tab[fila_exp, "0"]
+  odds_noexp <- tab[fila_noexp, "1"] / tab[fila_noexp, "0"]
+  
+  list(
+    Riesgo_exp = riesgo_exp,
+    Riesgo_noexp = riesgo_noexp,
+    Diferencia_riesgo = riesgo_exp - riesgo_noexp,
+    Riesgo_relativo = riesgo_exp / riesgo_noexp,
+    Odds_ratio = odds_exp / odds_noexp
+  )
+}
+
+calculo_riesgo(heart_disease_2_clean, "sex", "Male")
+calculo_riesgo(heart_disease_2_clean, "fbs", TRUE)
+calculo_riesgo(heart_disease_2_clean, "exang", TRUE)
+```
+
+b) Basándoos en los conceptos del LAB4 y la PEC2, plantead un mínimo de tres enunciados que respondan a una cuestión de probabilidad.
+
+Los enunciados de probabilidad que planteamos son los siguientes:
+
++ ¿Cuál es la probabilidad de enfermedad cardiovascular en la población?
+```{r}
+# Probabilidad de enfermedad cardiovascular en la población
+p_enferm <- mean(heart_disease_2_clean$diagnosis_bin == "1")
+p_enferm
+```
+
+La probabilidad de enfermedad cardiovascular en la población de estudio es 0,61.
+
++ ¿Cuál es la probabilidad de enfermedad cardiovascular en mujeres y en hombres?
+```{r}
+# Probabilida de enfermedad cv en mujeres y en hombres
+prop.table(table(heart_disease_2_clean$sex,
+           heart_disease_2_clean$diagnosis_bin), 1)[, "1"]
+```
+
+La probabilidad de enfermedad en mujeres es 0,31 y en hombres es 0,70.
+
++ ¿Qué grupo de dolor torácico tiene una probabilidad mayor de enfermedad cardiovascular?
+```{r}
+# Realizamos un gráfico de barras a partir de las frecuencias relativas
+# de enfermedad cv en los grupos de dolor torácico
+barplot(
+  prop.table(table(heart_disease_2_clean$cp,
+                   heart_disease_2_clean$diagnosis_bin), 1)[, "1"],
+  main = "Probabilidad de enfermedad cv según dolor torácico",
+  ylab = "Probabilidad",
+  xlab = "Tipo de dolor torácico"
+)
+```
+
+Como se observa en el gráfico de barras, el grupo asintomático tiene la mayor probabilidad de sufrir enfermedad cardiovascular (0,82), seguido del grupo con dolor anginoso (0,40).
+
++ ¿Cuál es la probabilidad de enfermedad cardiovascular si se ha sufrido una angina inducida por el ejercicio? ¿Y si no se ha sufrido angina?
+```{r}
+# Probabilidad de enfermedad cv condicional a haber sufrido angina o no
+prop.table(table(heart_disease_2_clean$exang,
+                 heart_disease_2_clean$diagnosis_bin), 1)[, "1"]
+```
+
+La probabilidad de enfermedad cardiovascular si se ha sufrido angina inducida por el ejercicio es 0,83 y si no se ha sufrido es 0,39.
+
++ ¿Existe asociación estadística entre el nivel de azúcar en sangre en ayunas y la enfermedad cardiovascular, o se trata de variables independientes?
+```{r}
+# Test de chi cuadrado para determinar si fbs y diagnosis_bin son independientes
+tab <- table(heart_disease_2_clean$fbs,
+             heart_disease_2_clean$diagnosis_bin)
+chisq.test(tab)
+
+# Probabilidades condicionales
+prop.table(table(heart_disease_2_clean$fbs,
+                 heart_disease_2_clean$diagnosis_bin), 1)[, "1"]
+
+# Probabilidad de enfermedad en la población
+mean(heart_disease_2_clean$diagnosis_bin == "1")
+```
+
+El p-valor (0,3777) es mayor que 0,05 y no podemos rechazar la hipótesis nula. Por lo tanto, en este conjunto de datos, no hay una evidencia estadísticamente significativa de asociación entre el nivel de azúcar en sangre en ayunas y la enfermedad cardiovascular.
+
+La probabilidad condicional de enfermedad en los pacientes con un nivel normal de azúcar (0,60) es prácticamente la misma que la probabilidad de enfermedad en la población (0,61) y es ligeramente superior en los pacientes con un nivel alto (0,65), lo que sugeriria una leve associación. Sin embargo el test de chi al quadrado indica que esta diferencia no es estadísticamente significativa, y sugiere que el nivel de azúcar en sangre en ayunas y la enfermedad cardiovascular son independientes en nuestra muestra. También debemos tener en cuenta que el número de pacientes con un nivel alto de azúcar en sangre es relativamente pequeño (85) y esto limita el poder estadístico.
+
+
+c) Incluid un mínimo de un enunciado que corresponda a un breve modelo de simulación. Si vuestro conjunto de datos no facilita este tipo de enunciados, podéis generar una o varias distribuciones basándoos en parámetros determinados definidos por vosotros, afines al contexto del estudio.
+
+Si simulamos 10.000 pacientes, ¿cuántos tendran enfermedad cardiovascular?
+```{r}
+# Calculamos la probabilidad de enfermedad
+p_enferm <- mean(heart_disease_2_clean$diagnosis_bin == "1")
+
+# Simulamos los 10.000 pacientes
+set.seed(999)
+pac_sim <- rbinom(10000, 1, prob = p_enferm)
+
+# Calculamos cuántos tendran enfermedad cv
+mean(pac_sim)
+
+```
+
+
+# Sección 4. Modelos de aprendizaje automático
+
+Basándoos en los conceptos trabajados en el LAB5 y a partir de vuestro conjunto de datos y de los objetivos del estudio, evaluad qué tipo de modelos conviene realizar: aprendizaje supervisado o no supervisado.
+
+- Justificad vuestra elección.
+- Mostrad el detalle del estudio realizado.
+- Incluid las representaciones gráficas correspondientes (por ejemplo, clústeres, si procede).
+
+Realizaremos un modelo de aprendizaje supervisado, dado que nuestros datos están etiquetados y podemos realizar predicciones específicas dentro de nuestro dataset.
+
+## Modelo SVM - clasificación
+
+En primer lugar, realizaremos un modelo de clasificación basado en nuestra variable de clase (*diagnosis*, *diagnosis_bin*) utilizando el algoritmo de máquinas de vectores de soporte (SVM).
+
+1. Usamos la variable *diagnosis_bin* (0/1):
+
+```{r}
+set.seed(123)
+library(caTools)
+# eliminamos la variable diagnosis de nuestro dataset para que no interfiera 
+heart_disease_2_clean_1 = heart_disease_2_clean[,-14]
+# comprobamos que diagnosis ha sido eliminada
+str(heart_disease_2_clean_1)
+# dividimos nuestro dataset en training y test
+split = sample.split(heart_disease_2_clean_1$diagnosis_bin, SplitRatio = 0.7)
+heart_disease_train_1 = heart_disease_2_clean_1[split,]
+heart_disease_test_1 = heart_disease_2_clean_1[!split,]
+head(heart_disease_train_1)
+head(heart_disease_test_1)
+# comprobamos que las proporciones de cada categoría se mantienen entre training y test
+round(prop.table(table(heart_disease_train_1$diagnosis_bin)*100),1)
+round(prop.table(table(heart_disease_test_1$diagnosis_bin)*100),1)
+```
+
+Una vez hemos hecho la división de los conjuntos de training y test, procedemos a entrenar el modelo usando el kernel lineal:
+
+```{r}
+set.seed(123)
+library(kernlab)
+modelo_1 = ksvm(diagnosis_bin ~ ., data = heart_disease_train_1, kernel = "vanilladot")
+modelo_1
+```
+
+Seguidamente, realizamos las predicciones del modelo usando el conjunto de test y lo evaluamos:
+
+```{r}
+# kernel vanilladot - lineal
+set.seed(123)
+predicciones_1 = predict(modelo_1, heart_disease_test_1)
+predicciones_1
+# tabla de confusión básica
+table(predicciones_1, heart_disease_test_1$diagnosis_bin)
+# tabla de confusión del paquete caret (usamos como clase positiva 1)
+library(caret)
+confusionMatrix(predicciones_1, heart_disease_test_1$diagnosis_bin, positive = "1")
+```
+
+El modelo de predicción de la la variable *diagnosis_bin* (0/1) usando el kernel lineal presenta una exactitud del 83%, con una sensibilidad (capacidad de detectar positivos reales (1)) muy alta, situadda en el 90,7%, y una especificidad (capacidad de detectar casos negativos reales (0)) del 71% aproximadamente.
+
+2. Usamos la variable *diagnosis* (0/1/2/3/4):
+
+```{r}
+set.seed(123)
+library(kernlab)
+# eliminamos la variable diagnosis_bin de nuestro dataset para que no interfiera 
+heart_disease_2_clean_2 = heart_disease_2_clean[,-15]
+# comprobamos que diagnosis_bin ha sido eliminada
+str(heart_disease_2_clean_2)
+# dividimos nuestro dataset en training y test
+split = sample.split(heart_disease_2_clean_2$diagnosis, SplitRatio = 0.7)
+heart_disease_train_2 = heart_disease_2_clean_2[split,]
+heart_disease_test_2 = heart_disease_2_clean_2[!split,]
+# veamos el número de casos de cada nivel en los grupo de training y test
+table(heart_disease_train_2$diagnosis)
+table(heart_disease_test_2$diagnosis)
+# entrenamos el modelo (kernel lineal)
+modelo_2 = ksvm(diagnosis ~ ., data = heart_disease_train_2, kernel = "vanilladot")
+modelo_2
+# realizamos las predicciones
+predicciones_2 = predict(modelo_2, heart_disease_test_2)
+# tabla de confusión
+library(caret)
+confusionMatrix(predicciones_2, heart_disease_test_2$diagnosis)
+```
+
+El modelo de predicción de la la variable *diagnosis* (0/1/2/3/4) usando el kernel lineal presenta una exactitud del 53% aproximadamente, con unos valores de sensibilidad y especificidad que van disminuyendo y aumentando, respectivamente, a medida que aumenta el nivel de *diagnosis*. Esto puede deberse a que el número de casos, tanto en el grupo de training como test, disminuye a medida que subimos de nivel, llegando a sólo 15 casos para el nivel 4 en el dataset de training. 
+
+El kernel que hemos usado para realizar las predicciones anteriores de *diagnosis_bin* y *diagnosis* es lineal (*vanilladot*). Veamos si podemos obtener mejor modelo de predicción usando un kernel más complejo, como por ejemplo el guassiano (*rbfdot*):
+
+1. Usamos la variable *diagnosis_bin* (0/1):
+
+```{r}
+set.seed(123)
+library(kernlab)
+# entrenamos el modelo
+modelo_1_rbf = ksvm(diagnosis_bin ~ ., data = heart_disease_train_1, kernel = "rbfdot")
+modelo_1_rbf
+# realizamos las predicciones
+predicciones_1_rbf = predict(modelo_1_rbf, heart_disease_test_1)
+# tabla de confusión
+library(caret)
+confusionMatrix(predicciones_1_rbf, heart_disease_test_1$diagnosis_bin, positive = "1")
+```
+
+El modelo de predicción de la la variable *diagnosis_bin* (0/1) usando el kernel gaussiano presenta una exactitud del 80%, con una sensibilidad (capacidad de detectar positivos reales (1)) muy alta, situadda en el 90,7%, y una especificidad (capacidad de detectar casos negativos reales (0)) del 63% aproximadamente.
+
+
+2. Usamos la variable *diagnosis* (0/1/2/3/4):
+
+```{r}
+set.seed(123)
+library(kernlab)
+# entrenamos el modelo
+modelo_2_rbf = ksvm(diagnosis ~ ., data = heart_disease_train_2, kernel = "rbfdot")
+modelo_2_rbf
+# realizamos las predicciones
+predicciones_2_rbf = predict(modelo_2_rbf, heart_disease_test_2)
+# tabla de confusión
+library(caret)
+confusionMatrix(predicciones_2_rbf, heart_disease_test_2$diagnosis)
+```
+
+El modelo de predicción de la la variable *diagnosis* (0/1/2/3/4) usando el kernel gaussiano presenta una exactitud del 54% aproximadamente.
+
+Los resultados de *accuracy* del modelo de predicción en función de la variable predicha y kernel utilizado son:
+
+| Variable       | Kernel   | Accuracy |
+|----------------|----------|----------|
+| diagnosis_bin  | Lineal   | 0.8302   |
+| diagnosis      | Lineal   | 0.5316   |
+| diagnosis_bin  | Gaussian | 0.7987   |
+| diagnosis      | Gaussian | 0.5443   |
+
+Para predecir la variable *diagnosis_bin* de 2 niveles (0/1), el modelo lineal presenta un valor de exactitud más alto que el modelo con el kernel gaussiano. Por otro lado, para predecir la variable *diagnosis* de 5 niveles (0/1/2/3/4), el modelo gaussiano presenta un valor de exactitud ligeramente más alto que el modelo con el kernel lineal. 
+
+Para predecir la variable con menor número de niveles (*diagnosis_bin*), el kernel lineal genera una mejor predicción. En cambio, para predecir la variable más compleja (*diagnosis*), el kernel gaussiano genera un mejor modelo.
+
+## Regresión lineal múltiple
+
+En segundo lugar, realizaremos una regresión lineal múltiple de una variable numérica de nuestro dataset. En este caso hemos elegido como varible dependiente *thalch*. Nos ha parecido interesante elegir esta variable ya que en el gráfico Frecuencia cardíaca máxima según diagnóstico (3.1.3 Representación gráfica. Variables continuas), se observan diferencias entre los grupos de diagnóstico (0/1).
+
+*thalch* hace referencia a la frecuencia cardíaca máxima. Veamos si ésta viene determinada por alguna/s de las variables de nuestro dataset. Del conjunto de variables que tenemos usaremos sólo algunas. Las variables *id*, *dataset*, *diagnosis* y *diagnosis_bin* son omitidas en este análisis. Mientras que las variables *diagnosis* y *diagnosis_bin* son variables que contienen el resultado y su presencia interferiría en el análisis. Por otro lado, *id* no es una variable de interés y *dataset* no se ha incluído porque no presenta relevancia a nivel clínico y además un 60% de los pacientes son de Cleveland lo que podría introducir alguna asociación no presente.
+
+```{r}
+mrm_thalch = lm(thalch ~ age+sex+cp+trestbps+chol+fbs+restecg+exang+oldpeak+slope, data=heart_disease_2_clean)
+summary(mrm_thalch)
+```
+
+Al realizar este análisis observamos que los valores de referencia de cada variable categórica son los siguientes (ya que no aparecen en el resultado):
+
+- sex: female
+- cp: asymptomatic
+- fbs: false
+- restecg: lv hypertrophy
+- exang: false
+- slope: downsloping
+
+Vamos a modificar los valores de referencias de las variables *restecg* y *slope* a *normal* y *flat*, respectivamente para referenciar respecto a la categoría estándar:
+
+```{r}
+# modificamos los valores de referencia
+heart_disease_2_clean$restecg = relevel(heart_disease_2_clean$restecg, ref = "normal")
+heart_disease_2_clean$slope = relevel(heart_disease_2_clean$slope, ref = "flat")
+# realizamos la regresión lineal múltiple de nuevo
+mrm_thalch = lm(thalch ~ age+sex+cp+trestbps+chol+fbs+restecg+exang+oldpeak+slope, data=heart_disease_2_clean)
+summary(mrm_thalch)
+```
+
+Obtenemos un valor *Multiple R-squared* de 0.4123, el cual se encuentra por debajo de 0.5, indicando que nuestros predictores no presentan una capacidad de predicción elevada sobre la variable dependiente *thalch*. También relevante es el valor de *p*, que se sitúa en < 2.2e-16, lo que indica significancia. 
+
+Las variables y categorías que muestran un efecto estadísticamente significativo sobre la frecuencia cardíaca máxima (*thalch*) son: 
+
+| Variable | Categoría       |
+|----------|-----------------|
+| age      | —               |
+| cp       | atypical angina |
+| cp       | non-anginal     |
+| cp       | typical angina  |
+| chol     | —               |
+| restecg  | lv hypertrophy  |
+| exang    | TRUE            |
+| slope    | upsloping       |
+
+Asimismo, entre todos los predictores posibles, vamos a buscar el mejor modelo con los mejores predictores mediante la función *step()*:
+
+```{r}
+step(object = mrm_thalch, direction = "both", trace = 1)
+```
+
+El mejor modelo se obtiene con los siguientes predictores y coeficientes:
+
+| Variable | Categoría        | Coeficiente |
+|----------|------------------|------------:|
+| age      | —                |    -0.72964 |
+| cp       | atypical angina  |    11.17008 |
+| cp       | non-anginal      |     8.81548 |
+| cp       | typical angina   |    10.20620 |
+| chol     | —                |     0.04195 |
+| restecg  | lv hypertrophy   |     6.44830 |
+| restecg  | st-t abnormality |     0.24628 |
+| exang    | TRUE             |   -10.45056 |
+| slope    | downsloping      |     2.79602 |
+| slope    | upsloping        |    14.29965 |
+
+
+El coeficiente más alto se corresponde a *slope*(Pendiente del segmento ST en el ejercicio máximo) - upsloping. Esto nos indica que la pendiente ascendente se asocia con una mayor frecuencia cardíaca máxima. Por otro lado, el coeficiente más bajo lo encontramos en *exang*(Angina inducida por ejercicio) - true. Esto nos indica que padecer angina inducida por ejercicio se asocia con una menor frecuencia cardíaca máxima, lo cual es coherente ya que estos pacientes no realizan esfuerzos físicos.
+
+## ANOVA
+
+Por último, aunque ANOVA no forme parte del ámbito del *machine learning* como tal, nos ha parecido interesante hacer un análisis debido a la presencia de abundantes variables categóricas y numéricas en nuestro dataset.
+
+Vamos a determinar si existen diferencias significativas en la frecuencia cardíaca máxima (*thalch*) entre los grupos de diagnóstico mediante un análisis ANOVA.
+
+Usaremos la variable *diagnosis* para este análisis debido a que presenta 5 grupos (0 - sin enfermedad cardíaca; 1/2/3/4 - grados de enfermedad cardíaca). La variable *diagnosis_bin* solamente tiene 2 grupos (0/1) y no es necesario realizar una ANOVA, con t-test sería suficiente.
+
+En primer lugar realizaremos un test de normalidad para determinar si la distribución de *thalch* en cada grupo de diagnosis es normal o no:
+```{r}
+# número de casos por nivel de diagnóstico
+table(heart_disease_2_clean$diagnosis)
+```
+
+Vemos que en la matyoría de grupos, el número de casos es superior a 50, por tanto el test de normalidad que realizaremos es Kolmogorov-Smirnov:
+
+```{r}
+library(nortest)
+# evaluamos normalidad mediante test Kolmogorov-Smirnov
+by(data = heart_disease_2_clean, INDICES = heart_disease_2_clean$diagnosis, FUN = function(x){lillie.test(x$thalch)})
+```
+
+Observamos que el test de normalidad muestra falta de normalidad en los grupos 0 y 2, pero no en el resto. El siguiente paso es evaluar la varianza constante entre los grupos (homocedasticidad). Aplicaremos el test de Fligner-Killeen para ello.
+
+```{r}
+# evaluamos homocedasticidad
+fligner.test(thalch ~ diagnosis, heart_disease_2_clean)
+```
+
+El *p* valor se sitúa en 0.7952, lo que indica que la varianza es constante entre los grupos de *diagnosis*. A pesar que hay dos grupos que muestran falta de normalidad, continuaremos con el análisis ANOVA para obtener información debido a que la mayoría de grupos muestran normalidad y se cumple la homocedasticidad entre grupos.
+
+```{r}
+resultado_anova = aov(thalch ~ diagnosis, data = heart_disease_2_clean)
+summary (resultado_anova)
+```
+
+Vemos que el valor de *p* es <2e-16, lo que indica que la variable *diagnosis* tiene un efecto estadísticamente significativo sobre la frecuencia cardíaca máxima. Veamos entre qué grupos de *diagnosis* existen estas diferencias. Para ello realizaremos un test de significancia Tukey:
+
+```{r}
+TukeyHSD(resultado_anova)
+```
+
+Las diferencias significativas las encontramos entre el grupo 0 (sin enfermedad cardíaca) y el resto de grupos (1/2/3/4). Realizamos un gráfico de cajas de la frecuencia cardíaca máxima en función del grupo de diagnóstico, acompañada de una tabla con las medias de cada grupo para visualizar estas diferencias:
+
+```{r}
+# tabla de medias
+aggregate(thalch ~ diagnosis, data = heart_disease_2_clean, FUN = mean)
+# gráfico boxplot
+boxplot(thalch ~ diagnosis, data = heart_disease_2_clean, id.method = "y", ylab = "Frecuencia cardíaca máxima", xlab = "Diagnóstico")
+```
+
+
+# Sección 5. Visualización
+
+Utilizando la herramienta Shiny (basada en los conceptos trabajados en el LAB6), realizad una propuesta de visualización de datos del conjunto de datos trabajado, a partir de unos determinados criterios a vuestra elección.
+
+```{r}
+library(shiny)
+library(shinythemes)
+library(DT)
+
+# Definimos la interfície de usuario
+ui <- fluidPage(
+  theme = shinytheme("flatly"),
+  
+  titlePanel("Visualización de dataset"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      fileInput(
+        "file",
+        "Carga del archivo (CSV/TSV/TXT)",
+        accept = c(".csv", ".tsv", ".txt")
+      ),
+      
+      selectInput(
+        "sep",
+        "Separador",
+        choices = c("Coma" = ",", "Punto y coma" = ";", "Tabulador" = "\t"),
+        selected = ","
+      ),
+      
+      selectInput(
+        "dec",
+        "Decimal",
+        choices = c("Coma" = ",", "Punto" = "."),
+        selected = "."
+      ),
+      
+      numericInput(
+        "skip",
+        "Número de linias a saltar",
+        value = 0,
+        min = 0
+      ),
+      
+      # Transformaciones del dataset
+      checkboxInput(
+        "rm_na",
+        "Eliminar filas con NA",
+        value = TRUE
+      ),
+      
+      checkboxInput(
+        "chr_to_factor",
+        "Convertir variables categóricas (chr) a factor",
+        value = TRUE
+      ),
+      
+      checkboxInput(
+        "logi_to_factor",
+        "Convertir variables lógicas (logi) a factor",
+        value = TRUE
+      ),
+      
+      # Selector de variables
+      selectInput(
+        "num_var",
+        "Variable numérica:",
+        choices = NULL
+      ),
+      
+      selectInput(
+        "fac_var",
+        "Variable categórica:",
+        choices = NULL
+      ),
+    ),
+    
+    mainPanel(
+      tabsetPanel(
+        tabPanel(
+          "Datos",
+          h4("Vista previa"),
+          DTOutput("table")
+        ),
+        tabPanel(
+          "Resultados",
+          h4("Resumen estadístico"),
+          tableOutput("stats")
+        ),
+        tabPanel(
+          "Gráficos",
+          h4("Gráfico"),
+          plotOutput("plot")
+        )
+      )
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  # Cargamos los datos crudos
+  raw_data <- reactive({
+    req(input$file)
+    read.table(
+      input$file$datapath,
+      header = TRUE,
+      sep = input$sep,
+      dec = input$dec,
+      skip = input$skip,
+      stringsAsFactors = FALSE
+    )
+  })
+  
+  # Transformaciones si aplican
+  data <- reactive({
+    df <- raw_data()
+    
+    if (input$rm_na) {
+      df <- na.omit(df)
+    }
+    
+    if (input$chr_to_factor) {
+      df[] <- lapply(df, function(x) {
+        if (is.character(x)) {
+          factor (x)
+        } else {x}
+      })
+    }
+    
+    if (input$logi_to_factor) {
+      df[] <- lapply(df, function(x) {
+        if (is.logical(x)) {
+          factor (x, labels = c("No", "Sí"))
+        } else {x}
+      })
+    }
+    df
+  })
+  
+  # Selectores de variables numéricas y categóricas
+  observeEvent(data(), {
+    df <- data()
+    
+    num_vars <- names(df)[sapply(df, is.numeric)]
+    fac_vars <- names(df)[sapply(df, is.factor)]
+    
+    updateSelectInput(session, "num_var", choices = num_vars)
+    updateSelectInput(session, "fac_var", choices = fac_vars)
+  })
+  
+  # Vista previa de los datos
+  output$table <- renderDT({
+    req(data())
+    datatable(
+      head(data(), 10)
+    )
+  })
+  
+  # Resúmen estadístico
+  output$stats <- renderPrint({
+    req(data(), input$num_var, input$fac_var)
+    
+    tapply(
+      data()[[input$num_var]],
+      data()[[input$fac_var]],
+      summary
+    )
+  })
+  
+  # Diagrama de caja
+  output$plot <- renderPlot({
+    req(input$num_var, input$fac_var)
+    
+    boxplot(
+      data()[[input$num_var]] ~ data()[[input$fac_var]],
+      xlab = input$fac_var,
+      ylab = input$num_var,
+      col = "lightblue",
+      main = "Diagrama de caja"
+    )
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+Adjuntamos aquí 3 capturas de imagen de la aplicación Shiny:
+
+![Captura shiny]("Shiny_App_1.png")
+![Captura shiny]("Shiny_App_2.png")
+![Captura shiny]("Shiny_App_3.png")
+
+# Sección 6. Conclusiones
+
+A partir de todo el estudio realizado en esta práctica, realizad una valoración final. Para ello, podéis basaros en preguntas como:
+
+- ¿Disponemos de conclusiones finales?
+- ¿Sería necesario realizar un análisis más avanzado?
+- ¿Faltan datos para obtener otro tipo de información como…?
+- ¿Se puede utilizar alguna de las conclusiones para tomar algún tipo de decisiones?
+
+En otro orden de cuestiones, valorad también el trabajo en grupo y la calidad del informe de análisis de datos generado.
+
+## Conclusiones
+
+### Análisis descriptivo
+
+En el análisis descriptivo observamos que, en promedio, los individuos con enfermedad cardíaca son ligeramente mayores. Esto estaría en consonancia con el hecho que el riesgo de padecer enfermedad cardíaca aumenta con la edad. No obstante esta diferencia es moderada.
+
+El grupo con enfermedad presenta mayor presión arterial en reposo, con mayor variabilidad, lo que sugiere que la hipertensión podría estar asociada a la enfermedad, aunque la diferencia no es demasiado grande. Contrariamente a lo que esperaríamos vemos que los niveles de colesterol en suero (mg/dl) son mayores en promedio en el grupo con ausencia de enfermedad que en el grupo con enfermedad. No obstante, también se observa una alta variabilidad en este grupo. Los menores niveles de colesterol en el grupo con enfermedad podrían ser debidos al control farmacológico con estatinas en estos pacientes. De algún modo, este resultado podría indicar que el parámetro colesterol total de forma aislada no necesariamente discrimina bien entre pacientes con o sin enfermedad cardíaca y que, por ello, se deberían tener en cuenta otros factores (colesterol LDL versus HDL, triglicéridos, entre otros).
+
+Durante el ejercicio observamos que los pacientes con enfermedad cardíaca alcanzan una **frecuencia cardíaca máxima** menor. Esta es **una de las diferencias más acusadas entre grupos**. Este resultado podría estar relacionado con una menor capacidad funcional del miocardio debido a la enfermedad cardíaca, a un efecto de la isquemia, o bien a la posible terapia con betabloqueantes, en estos pacientes, que también disminuye la frecuencia cardíaca. Finalmente se detecta un mayor descenso del ST inducido por el ejercicio en el grupo con enfermedad, lo que podría indicar una mayor afectación coronaria i/o una mayor isquemia inducida por el ejercicio.
+
+En global los pacientes con enfermedad cardíaca son ligeramente mayores, presentan mayor presión arterial, alcanzan una menor frecuencia cardíaca máxima y muestran mayor depresión del segmento ST durante el ejercicio. El segmento ST es la parte del electrocardiograma que refleja la repolarización ventricular. Cuando durante un esfuerzo el corazón  no recibe suficiente oxígeno (isquemia) aparece depresión del segmento ST inducida por el ejercicio. La existencia de diferencias o no en estas variables y la presencia de valores atípicos se puede visualizar en la representación que hemos realizado con diagramas de cajas.
+
+La muestra está claramente dominada por hombres (el 76%), lo que determinará que los análisis y modelos derivados podrían estar sesgados y las conclusiones que se extraerían del estudio de estos datos podrían no ser generalizables a las mujeres. La mayoría de individuos no presentan niveles elevados de azúcar en sangre en ayunas, aunque este podría ser un factor de riesgo relevante en el 16% que sí que los presentan. Más de la mitad de la población de estudio presenta un ECG en reposo normal, incluso en pacientes con enfermedad cardíaca, lo que pone de manifiesto la importancia de las pruebas de esfuerzo para un mejor diagnóstico electrofisiológico de la enfermedad.
+
+En el gráfico de enfermedad CV según el tipo de dolor torácico, vemos que muchos pacientes no presentan dolor torácico (son asintomáticos). De ello se derivaría que la ausencia de dolor no implica ausencia de enfermedad. En el gráfico de enfermedad CV según el nivel de azúcar vemos una mayor proporción de individuos enfermos en el grupo de individuos con niveles de azúcar mayores, lo que sugeriría que la hiperglicemia en ayunas se asocia con un mayor riesgo de enfermedad cardiovascular. No obstante, esta asociación es moderada en el dataset por el bajo porcentaje de individuos con este factor. En el gráfico de enfermedad según ECG en reposo volvemos a ver que un ECG normal no descarta la presencia de enfermedad CV. Por otro lado se detecta una proporción muy alta de pacientes enfermos en el grupo con alteraciones ST-T en reposo. Aunque por si solas estas alteraciones no son diagnósticas, sí que son hallazgos muy frecuentes y pueden ser indicativas de afección cardíaca. En el gráfico de enfermedad CV según la presencia o no de angina inducida por el ejercicio observamos una proporción muy alta de enfermos en el grupo con angina, lo que indicaría que la aparición de angina durante el ejercicio es un signo claro de enfermedad cardíaca. Finalmente, en el gráfico de la proporción de enfermedad según el pendiente del segmento ST vemos un claro predominio de enfermos en los grupos *downsloping* y *flat*; estos dos patrones se relacionan con una mayor probabilidad de isquemia cardíaca y con sospecha de isquemia, respectivamente.
+
+### Modelos de aprendizaje automático y ANOVA
+
+Los análisis de *machine learning* realizados permiten concluir que la predicción de la variable de clase (*diagnosis*) en formato binario se realiza con una exactitud elevada mediante el modelo SVM, en comparación con la predicción de la misma variable de cinco niveles. Esto sugiere que la simplificación de la variable a predecir se traduce en una mejora de la capacidad predictiva del modelo. Alternativamente, podemos plantearnos la posibilidad de utilizar otros algoritmos de clasificación, como *Naive Bayes*, *Decision trees* o *Random forest*, con el objetivo de evaluar si estos métodos permiten mejorar la predicción de la variable de clase. Esta comparación se realizaría evaluando métricas como *accuracy*, sensibilidad y especificidad.
+
+Por otro lado, la regresión lineal múltiple ha permitido determinar qué variables de nuestro dataset presentan un efecto estadísticamente significativo sobre la frecuencia cardíaca máxima, utilizada como variable dependiente numérica. No obstante, para estudiar el efecto de las variables clínicas sobre la variable de clase factor (*diagnosis*), podríamos haber usado un modelo de regresión logística y sería interesante como siguiente paso en el estudio.
+
+Por último, mediante el análisis ANOVA se ha podido estudiar con mayor detalle el efecto de variables categóricas con tres o más niveles sobre variables numéricas. En concreto, se ha observado que el grupo de diagnóstico presenta un efecto estadísticamente significativo sobre la frecuencia cardíaca máxima. Este tipo de análisis se podría realizar sobre otras variables de nuestro dataset para profundizar en la relación entre el resto de factores clínicos y variables numéricas.
+
+### Limitaciones del dataset y valoración final 
+
+Por otra parte, se ha echado en falta la presencia de variables demográficas y de estilo de vida en nuestro dataset. Variables como el hábito de fumar, el consumo de alcohol, el peso corporal o el índice de masa corporal habrían aportado un valor añadido al dataset y posterior análisis, permitiendo evaluar la influencia de estos factores sobre la presencia de enfermedad cardíaca. Este tipo de análisis habría facilitado, además, la posterior toma de decisiones relacionadas con la prevención y un estilo de vida saludables.
+
+
+
+
+
+
+
+
+
+
+
+
+
