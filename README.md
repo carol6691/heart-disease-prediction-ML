@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project explores a real-world biomedical dataset to analyze factors associated with cardiovascular disease and develop predictive machine learning models.
+This project explores a biomedical dataset to analyze factors associated with cardiovascular disease and develop predictive machine learning models.
 
 Using the **UCI Heart Disease dataset**, the project includes a complete workflow covering:
 
@@ -93,37 +93,6 @@ Both numerical and categorical variables were explored using:
 - pairwise correlation plots
 
 ## Statistical Analysis
-
-### Risk analysis
-
-A custom R function was defined to calculate:
-
-- exposed risk
-- non-exposed risk
-- risk difference
-- relative risk (RR)
-- odds ratio (OR)
-
-Example results:
-
-- **Male vs Female**
-  - Relative Risk = 2.23
-  - Odds Ratio = 5.15
-
-- **Exercise-induced angina**
-  - Relative Risk = 2.14
-  - Odds Ratio = 7.84
-
-These results suggest strong associations for some clinical variables.
-
-### Probability analysis
-
-Several probability-based questions were explored, including:
-
-- probability of heart disease in the study population
-- probability of disease by sex
-- probability of disease by chest pain type
-- conditional probability of disease given exercise-induced angina
 
 ### Chi-square test
 
@@ -216,10 +185,6 @@ The main significant differences were found between:
 - the healthy group (`0`)
 - and all disease groups (`1`, `2`, `3`, `4`)
 
-## Shiny App
-
-A Shiny app was developed as an interactive data visualization tool.
-
 ### Features
 
 - upload a dataset (`.csv`, `.tsv`, `.txt`)
@@ -248,13 +213,13 @@ This dataset has several important limitations:
 - high percentage of missing values in some variables
 - removal of `ca` and `thal` reduced the number of available predictors
 - complete-case analysis reduced the sample size from 920 to 531
-- the sample is heavily male-dominated, which may affect generalizability
+- the sample is heavily male-dominated
 - the dataset lacks relevant lifestyle variables such as:
   - smoking
   - alcohol consumption
   - BMI
   - body weight
-- multiclass prediction is affected by class imbalance
+- prediction is affected by class imbalance
 
 ## Tech Stack
 
